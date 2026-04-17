@@ -146,7 +146,7 @@ h1 {
 .stage-header.mytt { 
     width: auto;
     min-width: var(--col-width); 
-    background: #eee; 
+    background: #ddd; /* #eee より少し暗く */ 
 }
 
 .stage-name {
@@ -163,7 +163,7 @@ h1 {
 .stage-name.mytt { 
     color: #333; 
     text-shadow: none; 
-    background: #ccc;
+    background: #bbb; /* #ccc より少し暗く */
 }
 
 /* タイムテーブルのグリッド領域 */
@@ -212,7 +212,7 @@ h1 {
 }
 
 .grid-col.mytt { 
-    background-color: rgba(238, 238, 238, 0.3);
+    background-color: rgba(238, 238, 238, 0.9);
 }
 
 /* 1時間ごとの背景罫線 */

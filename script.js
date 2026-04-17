@@ -9,7 +9,7 @@
 // --- 1. アプリケーション全体の設定 ---
 const APP_CONFIG = {
     // ヘッダーに表示されるタイトル
-    festivalName: "ARABAKI ROCK FEST.26<br>非公式タイムテーブル",
+    festivalName: "ARABAKI ROCK FEST.26<br>タイムテーブル",
     // 端末保存用キーの接頭辞（フェスごとに変更すると前回のデータと混ざりません）
     storagePrefix: "arabaki_2026_",
     // タイムテーブルの表示時間（開始〜終了）
@@ -591,11 +591,16 @@ function renderTimetable() {
         gridHtml += `<div class="grid-col"><div class="grid-bg-lines"></div>${content}</div>`;
     });
 
-    // 現在時刻線の箱を追加
+// 現在時刻線の箱を追加
     gridHtml += `<div class="current-time-line" id="currentTimeLine"></div>`;
     
     // DOMに反映
-    document.getElementById('gridContainer').innerHTML = gridHtml;
+    const gridContainer = document.getElementById('gridContainer');
+    gridContainer.innerHTML = gridHtml;
+
+    // ★追加: マイタイムテーブル等の背景色が一番下まで続くよう、全体の高さを設定
+    const totalHours = APP_CONFIG.endHour - APP_CONFIG.startHour + 1;
+    gridContainer.style.height = `calc(${totalHours} * 60 * var(--px-per-min) * 1px)`;
     
     // 現在時刻線の位置更新とフォントサイズの調整
     updateCurrentTimeLine(); 
