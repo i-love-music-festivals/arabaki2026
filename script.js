@@ -842,12 +842,19 @@ function displayLastModified() {
 // キャッシュ機能も APP_CONFIG と連携させ流用しやすくします。
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+        
+        // ★追加・修正：Blob内で相対パスが迷子にならないよう、事前に絶対URLを作成しておく
+        const pageUrl = location.href.split('?')[0]; // 現在のURL（パラメータ除去）
+        const cssUrl = new URL('./style.css', location.href).href; // style.cssの絶対URL
+        const jsUrl = new URL('./script.js', location.href).href;  // script.jsの絶対URL
+
         const swCode = `
             const CACHE_NAME = '${APP_CONFIG.storagePrefix}cache-v1';
+            // ★修正：事前に計算した絶対URLを文字列として埋め込む
             const urlsToCache = [
-                location.href,
-                'style.css',
-                'script.js'
+                '${pageUrl}',
+                '${cssUrl}',
+                '${jsUrl}'
             ];
 
             self.addEventListener('install', event => {
