@@ -657,6 +657,7 @@ function generateFoodCard(shop, areaName, isDraggable = false) {
 
     return `
     <div class="${classes}" ${dragAttr}>
+    <div class="food-card-area-badge">${areaName}</div>
         <button class="food-fav-btn ${isFav ? 'active' : ''}" onclick="toggleFoodFav('${encShopName}', '${encAreaName}')">★</button>
         <div class="food-card-img-wrapper">
             ${imgHtml}

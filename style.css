@@ -411,6 +411,21 @@ h1 {
     flex-shrink: 0;
 }
 
+/* 追加：フードカードのエリア名表示 */
+.food-card-area-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(230, 126, 34, 0.9); /* フードのテーマカラーを半透明に */
+    color: #fff;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: bold;
+    border-bottom-right-radius: 8px;
+    z-index: 5;
+    pointer-events: none; /* ドラッグやクリックの邪魔にならないようにする */
+}
+
 .food-card:hover {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     transform: translateY(-2px);
@@ -587,6 +602,25 @@ h1 {
     pointer-events: none; 
     border: 1px solid #FFB100;
     box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+/* 左上の公式HPリンクバナー */
+#officialLink {
+    position: fixed;
+    top: 10px;
+    left: 10px; /* 左側に配置 */
+    background: rgba(0, 0, 0, 0.7);
+    color: #FFB100;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 18px; /* 時計と同じ文字サイズ */
+    font-weight: bold;
+    z-index: 1000;
+    border: 1px solid #FFB100;
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+    text-decoration: none; /* リンクの下線を消す */
+    display: inline-block;
 }
 
 #lastUpdated { 
