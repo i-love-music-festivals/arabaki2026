@@ -686,7 +686,7 @@ function renderFoodSection() {
     
     if (foodFavoritesOrder.length === 0) {
         // お気に入りがない場合のメッセージ
-        html += `<div style="flex: 1; padding: 15px; color: #777; font-size: 13px; text-align: center; border: 2px dashed #e0e0e0; border-radius: 8px;">右上にある星マーク(★)を押すと、ここに追加されます。<br>追加されたカードはドラッグして並べ替え可能です。</div>`;
+        html += `<div style="flex: 1; padding: 15px; color: #777; font-size: 13px; text-align: center; border: 2px dashed #e0e0e0; border-radius: 8px;">右上にある星マーク(★)を押すと、ここに追加されます。<br>カードはメニュー部分をドラッグして並べ替え可能です。</div>`;
     } else {
         // お気に入りカードの生成
         foodFavoritesOrder.forEach(favItem => {
