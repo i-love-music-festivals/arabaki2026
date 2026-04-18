@@ -632,7 +632,7 @@ h1 {
 
 /* 公式HPリンク内の「公式」文字サイズ調整 */
 #officialLink .small-text {
-    font-size: 13px; /* お好みで微調整してください（HP側は18px） */
+    font-size: 14px; /* お好みで微調整してください（HP側は18px） */
     margin-right: 2px; /* 「公式」と「HP」の間にわずかに余白を入れると綺麗です */
     font-weight: normal; /* 太字を解除するとさらにメリハリが出ます */
 }
