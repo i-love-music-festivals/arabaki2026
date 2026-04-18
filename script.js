@@ -132,7 +132,7 @@ const timetableData = {
             e("ELLEGARDEN", "15:15", "16:00", "Punk Rock"),
             e("東京スカパラダイスオーケストラ", "16:45", "17:30", "Ska"),
             e("[Alexandros]", "18:15", "19:00", "Rock"),
-            e("ASIAN KUNG-FU GENERATION<br><span style='font-size:9px;font-weight:normal'>GUEST<br>●岸田繁●岸谷香●塩塚モエカ<br>●スカパラHorn Section<br>●TOSHI-LOW●のん●細美武士<br>●ホリエアツシ●Achico</span>", "19:50", "21:20", "Rock")
+            e("ASIAN KUNG-FU GENERATION<br><span style='font-size:9px;font-weight:normal'>GUEST<br>●岸田繁●岸谷香<br>●塩塚モエカ<br>●スカパラHorn Section<br>●TOSHI-LOW●のん<br>●細美武士●ホリエアツシ●Achico</span>", "19:50", "21:20", "Rock")
         ],
         arahabaki: [
             e("Ayllton", "10:30", "11:00", "Acoustic"),
@@ -147,7 +147,7 @@ const timetableData = {
             e("GLIM SPANKY (Acoustic Set)", "18:50", "19:20", "Rock")
         ],
         hatahata: [
-            e("藤原美幸(秋田民謡)", "10:30", "10:45", "Folk"),
+            e("藤原美幸(秋田民謡)", "10:30", "10:45", ""),
             e("リアクション ザ ブッタ", "10:45", "11:20", "Rock"),
             e("TENDOUJI", "11:50", "12:25", "Indie Rock"),
             e("みちのくプロレス1", "12:25", "12:45"),
@@ -210,7 +210,7 @@ const timetableData = {
             e("10-FEET", "14:35", "15:20", "Punk"),
             e("布袋寅泰", "16:05", "16:50", "Rock"),
             e("あいみょん", "17:35", "18:20", "Pop"),
-            e("MICHINOKU PEACE SESSION GTR祭'26<br><span style='font-size:9px;font-weight:normal'>SPECIAL BAND<br>●The Birthday<br>●Paledusk<br>●Keyboards：高野勲<br>GUEST<br>●うつみようこ●菅原卓郎<br>●曽我部恵一●竹安堅一●TAKUMA<br>●DURAN●TOSHI-LOW<br>●ホリエアツシ●松尾レミ<br>●宮崎朝子●山田将司&菅波栄純</span>", "19:30", "21:15", "Rock")
+            e("MICHINOKU PEACE SESSION GTR祭'26<br><span style='font-size:9px;font-weight:normal'>SPECIAL BAND<br>●The Birthday<br>●Paledusk<br>●Keyboards：高野勲<br>GUEST<br>●うつみようこ●菅原卓郎<br>●曽我部恵一●竹安堅一<br>●TAKUMA●DURAN<br>●TOSHI-LOW<br>●ホリエアツシ●松尾レミ<br>●宮崎朝子<br>●山田将司&菅波栄純</span>", "19:30", "21:15", "Rock")
         ],
         arahabaki: [
             e("中村旭", "10:30", "11:00", "Acoustic"),
@@ -265,7 +265,7 @@ const timetableData = {
             e("レトロリロン", "19:55", "20:30", "Pop")
         ],
         banetsu: [
-            e("川内太鼓", "10:00", "10:20", "Traditional"),
+            e("川内太鼓", "10:00", "10:20", ""),
             e("GEZAN", "11:00", "11:45", "Alternative"),
             e("ハンバート ハンバート", "12:25", "13:10", "Folk"),
             e("KEIJU", "13:45", "14:30", "Hip Hop"),
