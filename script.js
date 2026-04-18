@@ -865,6 +865,7 @@ if ('serviceWorker' in navigator) {
                         './style.css',
                         './script.js',
                         './manifest.json',
+'https://weathernews.jp/onebox/tenki/spot/camp/02/9624686/',
                         'https://i-love-music-festivals.github.io/arabaki2026/arabaki2026.png',
                         'https://i-love-music-festivals.github.io/arabaki2026/icon.png',
                         'https://i-love-music-festivals.github.io/arabaki2026/arabaki26_areamap_ver02.jpg',
