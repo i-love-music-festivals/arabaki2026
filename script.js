@@ -410,7 +410,6 @@ function switchTab(target) {
         document.getElementById('btnWeather').classList.add('active');
         document.getElementById('weatherSection').classList.add('active');
         checkWeatherOnlineStatus(); // ★ 天気タブ表示時にオンライン状態をチェック
-      document.getElementById('weatherSection').scrollTop = 0;
 } else if (target === 'memo') {
         document.getElementById('btnMemo').classList.add('active');
         document.getElementById('memoSection').classList.add('active');
@@ -423,7 +422,6 @@ function switchTab(target) {
     
     localStorage.setItem(LAST_TAB_KEY, target);
   
-
    
 }
 
