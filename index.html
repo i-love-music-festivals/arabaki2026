@@ -3,7 +3,7 @@
 
   <head>
     <meta charset="UTF-8">
-    <title>ARABAKI ROCK FEST.26</title>
+    <title>test</title>
     <link rel="stylesheet" href="./style.css">
 
   </head>
@@ -46,6 +46,7 @@
                 <button class="tab-btn" id="btnDay2" onclick="switchTab('day2')">Day 2</button>
                 <button class="tab-btn" id="btnFood" onclick="switchTab('food')">フード</button>
                 <button class="tab-btn" id="btnMap" onclick="switchTab('map')">マップ</button>
+                <button class="tab-btn" id="btnWeather" onclick="switchTab('weather')">天気</button>
             </div>
         </header>
 
@@ -80,6 +81,27 @@
                 <button class="zoom-btn" onclick="resetZoom()" style="font-size: 12px;">Reset</button>
             </div>
         </div>
+
+        <div id="weatherSection" class="content-section">
+            <div id="weatherOnlineContent" class="weather-content">
+                <h2 class="weather-section-header">エコキャンプみちのく周辺の天気</h2>
+                <div class="iframe-container">
+                    <iframe src="https://weathernews.jp/onebox/tenki/spot/camp/02/9624686/" title="1時間毎の天気"></iframe>
+                </div>
+                <h2 class="weather-section-header">雨雲レーダー（宮城県 川崎町）</h2>
+                <div class="iframe-container">
+                    <iframe src="https://weathernews.jp/onebox/radar/miyagi/04324/" title="雨雲レーダー"></iframe>
+                </div>
+                <div class="weather-link-notice">
+                    ※サイト側のセキュリティ制限等でうまく表示されない場合は、<br>
+                    <a href="https://weathernews.jp/onebox/tenki/spot/camp/02/9624686/" target="_blank" rel="noopener noreferrer">こちらからウェザーニュース（公式サイト）を開いて</a>ご確認ください。
+                </div>
+            </div>
+            <div id="weatherOfflineContent" class="weather-offline-msg" style="display: none;">
+                <p>現在オフラインです。<br>天気情報を取得するにはインターネット接続が必要です。</p>
+            </div>
+        </div>
+
     </div>
 
     <script src="./script.js"></script>

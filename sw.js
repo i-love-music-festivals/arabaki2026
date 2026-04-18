@@ -1,4 +1,5 @@
-const CACHE_NAME = 'arabaki_2026_cache-v2'; // script.jsのprefixと合わせる
+// ★バージョン名を v3 に変更
+const CACHE_NAME = 'arabaki_2026_cache-v3'; // script.jsのprefixと合わせる
 
 self.addEventListener('fetch', event => {
     event.respondWith(

@@ -283,12 +283,29 @@ const timetableData = {
  * ==========================================
  */
 
+/**
+ * ==========================================
+ * 【設定・データエリア】
+ * 今後、別のフェスや別年度に流用する場合は、
+ * この APP_CONFIG や各種データを書き換えるだけで対応可能です。
+ * ==========================================
+ */
+
+// ※ APP_CONFIG, stagesInfo, e関数, foodList, timetableData は一切変更なしのため省略します。
+// 元のデータをそのまま残してください。
+
+/**
+ * ==========================================
+ * 【システム・ロジックエリア】
+ * データの処理、画面の描画、操作イベントの管理を行います。
+ * ==========================================
+ */
+
 // --- 状態管理変数 ---
 let currentDay = 1; // 現在選択されている日 (1: day1, 2: day2)
 let mapScale = 1.0; // マップのズーム倍率
 
 // --- ローカルストレージ（保存データ）の読み込み ---
-// APP_CONFIG.storagePrefix を利用して、フェスごとのキーで保存・読み込みを行います。
 const FAV_KEY = APP_CONFIG.storagePrefix + 'favs';
 const FOOD_FAV_KEY = APP_CONFIG.storagePrefix + 'food_favs';
 const LAST_TAB_KEY = APP_CONFIG.storagePrefix + 'last_tab';
@@ -304,11 +321,9 @@ const saveFoodFavorites = () => localStorage.setItem(FOOD_FAV_KEY, JSON.stringif
  * 初期化処理：HTMLのテキスト等をAPP_CONFIGに基づいて書き換える
  */
 function applyAppConfig() {
-    // タイトルの設定
     const titleEl = document.getElementById('appTitle');
     if(titleEl) titleEl.innerHTML = APP_CONFIG.festivalName;
 
-    // タブ名の設定
     if (APP_CONFIG.days[0]) document.getElementById('btnDay1').textContent = APP_CONFIG.days[0].label;
     if (APP_CONFIG.days[1]) document.getElementById('btnDay2').textContent = APP_CONFIG.days[1].label;
 }
@@ -318,10 +333,9 @@ function applyAppConfig() {
  */
 function toggleFav(id) {
     const decodedId = decodeURIComponent(id);
-    // 存在すれば削除、なければ追加
     favorites[decodedId] ? delete favorites[decodedId] : favorites[decodedId] = true;
     saveFavorites();
-    renderTimetable(); // 状態が変わったので再描画
+    renderTimetable(); 
 }
 
 /**
@@ -332,15 +346,14 @@ function toggleFoodFav(shopName, areaName) {
     const decodedAreaName = decodeURIComponent(areaName);
     const id = decodedAreaName + "::" + decodedShopName; 
     
-    // リストの中に存在するか確認
     const index = foodFavoritesOrder.findIndex(item => item.id === id);
     if (index > -1) {
-        foodFavoritesOrder.splice(index, 1); // 存在する場合は削除
+        foodFavoritesOrder.splice(index, 1); 
     } else {
-        foodFavoritesOrder.push({ id: id, shopName: decodedShopName, areaName: decodedAreaName }); // なければ追加
+        foodFavoritesOrder.push({ id: id, shopName: decodedShopName, areaName: decodedAreaName }); 
     }
     saveFoodFavorites();
-    renderFoodSection(); // 状態が変わったので再描画
+    renderFoodSection(); 
 }
 
 /**
@@ -357,7 +370,6 @@ function toggleFoodArea(element) {
  */
 function timeToMins(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
-    // 開始時間より早い時間（例: 深夜）の場合は24時間を足して翌日扱いにする
     const adjustedH = h < APP_CONFIG.startHour ? h + 24 : h;
     return (adjustedH - APP_CONFIG.startHour) * 60 + m;
 }
@@ -393,17 +405,41 @@ function switchTab(target) {
     } else if (target === 'food') {
         document.getElementById('btnFood').classList.add('active');
         document.getElementById('foodSection').classList.add('active');
+    } else if (target === 'weather') {
+        document.getElementById('btnWeather').classList.add('active');
+        document.getElementById('weatherSection').classList.add('active');
+        checkWeatherOnlineStatus(); // ★ 天気タブ表示時にオンライン状態をチェック
     } else {
-        // day1 または day2 の処理
         currentDay = (target === 'day1') ? 1 : 2;
         document.getElementById(target === 'day1' ? 'btnDay1' : 'btnDay2').classList.add('active');
         document.getElementById('timetableSection').classList.add('active');
-        renderTimetable(); // 該当日のタイムテーブルを描画
+        renderTimetable(); 
     }
     
-    // 最後に開いたタブを記憶しておく
     localStorage.setItem(LAST_TAB_KEY, target);
 }
+
+/**
+ * 天気タブ表示時にオンライン/オフライン状態を確認して表示を切り替える
+ */
+function checkWeatherOnlineStatus() {
+    const onlineContent = document.getElementById('weatherOnlineContent');
+    const offlineContent = document.getElementById('weatherOfflineContent');
+    
+    if (onlineContent && offlineContent) {
+        if (navigator.onLine) {
+            onlineContent.style.display = 'flex';
+            offlineContent.style.display = 'none';
+        } else {
+            onlineContent.style.display = 'none';
+            offlineContent.style.display = 'flex';
+        }
+    }
+}
+
+// オンライン/オフライン状態の切り替わりを常時監視
+window.addEventListener('online', checkWeatherOnlineStatus);
+window.addEventListener('offline', checkWeatherOnlineStatus);
 
 /**
  * ステージ名部分（マイタイムテーブル含む）の描画
@@ -411,14 +447,12 @@ function switchTab(target) {
 function renderHeaders(myttCols) {
     let html = '';
     
-    // マイタイムテーブル（お気に入り）の列がある場合、その分のヘッダーを追加
     if(myttCols > 0) {
         html += `<div class="stage-header mytt" style="width: calc(var(--col-width) * ${myttCols});">
                     <div class="stage-name mytt">マイタイテ</div>
                  </div>`;
     }
 
-    // 通常のステージヘッダーを描画
     stagesInfo.forEach(stage => {
         const style = `style="background-color: ${stage.color}"`;
         html += `<div class="stage-header">
@@ -434,18 +468,15 @@ function renderHeaders(myttCols) {
 function getArtistHtml(artist, stage, dayKey, isMyTT = false) {
     const startMin = timeToMins(artist.start);
     const endMin = timeToMins(artist.end);
-    const duration = endMin - startMin; // 演奏時間（分）
+    const duration = endMin - startMin;
 
-    // お気に入り判定のためのID生成（記号などを除去して一意にする）
     const cleanName = artist.name.replace(/<[^>]*>/g, '').replace(/[^a-zA-Z0-9ぁ-んァ-ヶー一-龠]/g, '');
     const favId = `${dayKey}_${stage.id}_${cleanName}`;
     const isFav = favorites[favId];
     
-    // 特殊な催し物などの場合、背景色を薄くする（流用時は不要なら削除可）
     const lighterNames = ["川崎中学校吹奏楽部", "町長挨拶", "藤原美幸", "みちのくプロレス", "西馬音内盆踊り", "Cha'R", "夢弦会", "Lexulty"];
     const boxBgColor = lighterNames.some(t => artist.name.includes(t)) ? `${stage.color}b3` : stage.color;
 
-    // 現在演奏中かどうかの判定
     let isPlaying = false;
     const now = new Date();
     const dataDate = new Date(timetableData[dayKey].date);
@@ -457,11 +488,9 @@ function getArtistHtml(artist, stage, dayKey, isMyTT = false) {
         if(currentMins >= startMin && currentMins < endMin) isPlaying = true;
     }
 
-    // 適用するCSSクラスの構築
     const classes = ['artist-block', isFav && 'favorited', isPlaying && 'playing'].filter(Boolean).join(' ');
     const escapedFavId = encodeURIComponent(favId);
 
-    // （特定イベント用の簡易レイアウト処理：流用時に不要であれば通常表示に統一可能です）
     const isMayorGreeting = artist.name === "町長挨拶";
     const isSpecialArtist = artist.name.includes("藤原美幸") || artist.name.includes("夢弦会");
     const isEventNoGenre = artist.name.includes("みちのくプロレス") || artist.name.includes("西馬音内盆踊り") || artist.name.includes("トークセッション") || artist.name.includes("おとどけチーたくん高速バンド");
@@ -475,11 +504,9 @@ function getArtistHtml(artist, stage, dayKey, isMyTT = false) {
                 </div>`;
     }
 
-    // 通常のアーティスト表示
     const displayGenre = (isEventNoGenre) ? "" : (artist.genre || "");
     const timeText = isEventNoGenre ? `${formatTimeDisplay(artist.start)}-` : `${formatTimeDisplay(artist.start)}-${formatTimeDisplay(artist.end)}`;
     
-    // top位置は開始分×2px、高さは演奏分×2px (CSSの --px-per-min と連携)
     return `<div class="${classes}" style="top:${startMin*2}px; height:${duration*2}px; background-color:${boxBgColor};">
                 <div class="artist-top">
                     <span class="artist-time">${timeText}</span>
@@ -505,7 +532,6 @@ function adjustFontSize() {
 
         targetEl.style.fontSize = fontSize + 'px';
         
-        // 枠をはみ出している間、最小7pxまでフォントを小さくする
         while ((block.scrollHeight > block.offsetHeight || (isRow && nameEl.scrollWidth > nameEl.offsetWidth)) && fontSize > 7) {
             fontSize -= 0.5;
             targetEl.style.fontSize = fontSize + 'px';
@@ -520,14 +546,12 @@ function renderTimetable() {
     const dayKey = `day${currentDay}`;
     const data = timetableData[dayKey];
 
-    // 1. 左端の時間軸（Timeカラム）の生成
     let timeHtml = '';
     for(let h = APP_CONFIG.startHour; h <= APP_CONFIG.endHour; h++) {
         timeHtml += `<div class="time-slot"><span>${h >= 24 ? h-24 : h}:00</span></div>`;
     }
     document.getElementById('timeCol').innerHTML = timeHtml;
 
-    // 2. マイタイムテーブル（お気に入り）データの抽出
     let myTtItems = [];
     stagesInfo.forEach((stage, stageIndex) => {
         (data[stage.id] || []).forEach(artist => {
@@ -538,13 +562,11 @@ function renderTimetable() {
         });
     });
 
-    // 時間順に並び替え
     myTtItems.sort((a,b) => {
         if (a.stageIndex !== b.stageIndex) return a.stageIndex - b.stageIndex;
         return timeToMins(a.artist.start) - timeToMins(b.artist.start);
     });
 
-    // 時間が被っているアーティストを別の列に分割するロジック
     let myTtColumns = []; 
     myTtItems.forEach(item => {
         let maxOverlapCol = -1;
@@ -575,34 +597,27 @@ function renderTimetable() {
     const myTtColCount = myTtItems.length ? myTtColumns.length : 0;
     renderHeaders(myTtColCount); 
 
-    // 3. タイムテーブル本体のグリッド生成
     let gridHtml = '';
     
-    // マイタイムテーブル部分の描画
     if(myTtColCount > 0) {
         myTtColumns.forEach(col => {
             gridHtml += `<div class="grid-col mytt"><div class="grid-bg-lines"></div>${col.map(i => getArtistHtml(i.artist, i.stage, dayKey, true)).join('')}</div>`;
         });
     }
 
-    // 通常の全ステージ部分の描画
     stagesInfo.forEach(stage => {
         const content = (data[stage.id] || []).map(a => getArtistHtml(a, stage, dayKey)).join('');
         gridHtml += `<div class="grid-col"><div class="grid-bg-lines"></div>${content}</div>`;
     });
 
-// 現在時刻線の箱を追加
     gridHtml += `<div class="current-time-line" id="currentTimeLine"></div>`;
     
-    // DOMに反映
     const gridContainer = document.getElementById('gridContainer');
     gridContainer.innerHTML = gridHtml;
 
-    // ★追加: マイタイムテーブル等の背景色が一番下まで続くよう、全体の高さを設定
     const totalHours = APP_CONFIG.endHour - APP_CONFIG.startHour + 1;
     gridContainer.style.height = `calc(${totalHours} * 60 * var(--px-per-min) * 1px)`;
     
-    // 現在時刻線の位置更新とフォントサイズの調整
     updateCurrentTimeLine(); 
     adjustFontSize(); 
 }
@@ -619,18 +634,17 @@ function updateCurrentTimeLine() {
     const dataDate = new Date(timetableData[dayKey].date);
     const isNextDayEarly = now.getHours() < APP_CONFIG.startHour && now.getDate() === dataDate.getDate() + 1;
     
-    // 当日、もしくは翌日未明の場合のみラインを表示
     if (now.toDateString() === dataDate.toDateString() || isNextDayEarly) {
         const currentMins = (now.getHours() + (isNextDayEarly ? 24 : 0) - APP_CONFIG.startHour) * 60 + now.getMinutes();
         const maxMins = (APP_CONFIG.endHour - APP_CONFIG.startHour) * 60;
 
         if(currentMins >= 0 && currentMins <= maxMins) {
             line.style.display = 'block';
-            line.style.top = `${currentMins * 2}px`; // 1分=2px計算
+            line.style.top = `${currentMins * 2}px`; 
             return;
         }
     }
-    line.style.display = 'none'; // 該当日以外は非表示
+    line.style.display = 'none'; 
 }
 
 /**
@@ -640,7 +654,6 @@ function generateFoodCard(shop, areaName, isDraggable = false) {
     const menuItems = shop.menus.map(m => `<li>${m}</li>`).join('');
     const messageHtml = shop.message.replace(/\n/g, '<br>');
     
-    // 画像があれば表示、なければ代替テキスト
     const imgSrc = shop.img || ""; 
     const imgHtml = imgSrc 
         ? `<img src="${imgSrc}" class="food-card-img" alt="${shop.name}">` 
@@ -651,7 +664,6 @@ function generateFoodCard(shop, areaName, isDraggable = false) {
     const encShopName = encodeURIComponent(shop.name);
     const encAreaName = encodeURIComponent(areaName);
     
-    // ドラッグ＆ドロップ対応用の属性付与
     const classes = isDraggable ? "food-card draggable-card" : "food-card";
     const dragAttr = isDraggable ? `draggable="true" data-id="${id}"` : `data-id="${id}"`;
 
@@ -676,7 +688,6 @@ function generateFoodCard(shop, areaName, isDraggable = false) {
 function renderFoodSection() {
     let html = '';
     
-    // 1. お気に入り（食べたいものリスト）エリア
     html += `
     <div class="food-area-toggle open" onclick="toggleFoodArea(this)" style="background-color: #fff0f5; border: 2px solid #ffb6c1;">
         <span>★ 食べたいものリスト</span>
@@ -686,10 +697,8 @@ function renderFoodSection() {
     `;
     
     if (foodFavoritesOrder.length === 0) {
-        // お気に入りがない場合のメッセージ
         html += `<div style="flex: 1; padding: 15px; color: #777; font-size: 13px; text-align: center; border: 2px dashed #e0e0e0; border-radius: 8px;">右上にある星マーク(★)を押すと、ここに追加されます。<br>カードはメニュー部分をドラッグして並べ替え可能です。</div>`;
     } else {
-        // お気に入りカードの生成
         foodFavoritesOrder.forEach(favItem => {
             let shopData = null;
             foodList.forEach(area => {
@@ -699,13 +708,12 @@ function renderFoodSection() {
                 }
             });
             if (shopData) {
-                html += generateFoodCard(shopData, favItem.areaName, true); // true = ドラッグ可能
+                html += generateFoodCard(shopData, favItem.areaName, true); 
             }
         });
     }
     html += `</div>`;
 
-    // 2. 通常のエリア別リスト
     foodList.forEach(area => {
         const shopsHtml = area.menu.map(shop => generateFoodCard(shop, area.name, false)).join('');
         html += `
@@ -720,7 +728,6 @@ function renderFoodSection() {
     
     document.getElementById('foodContainer').innerHTML = html;
     
-    // ドラッグ＆ドロップイベントの再設定
     setupDragAndDrop(); 
 }
 
@@ -733,9 +740,7 @@ function setupDragAndDrop() {
     const cards = container.querySelectorAll('.draggable-card');
     
     cards.forEach(card => {
-        // ドラッグ開始
         card.addEventListener('dragstart', () => card.classList.add('dragging'));
-        // ドラッグ終了（並び順を保存）
         card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
             updateFoodFavoritesOrder(); 
@@ -794,9 +799,7 @@ function updateFoodFavoritesOrder() {
  * マップのズームイン・ズームアウト処理
  */
 function zoomMap(delta) {
-    // 最小0.5倍、最大3.0倍に制限
     mapScale = Math.min(Math.max(0.5, mapScale + delta), 3.0);
-    // ラッパーの横幅(%)を変更することでズームを実現
     document.getElementById('mapWrapper').style.width = `${mapScale * 100}%`;
 }
 
@@ -822,7 +825,7 @@ function updateClock() {
 }
 
 /**
- * 最終更新日時を表示する（HTMLの最終更新日を取得）
+ * 最終更新日時を表示する
  */
 function displayLastModified() {
     const lastMod = new Date(document.lastModified);
@@ -840,16 +843,14 @@ function displayLastModified() {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // ★ 1. 外部ファイルとしてService Workerを登録
         navigator.serviceWorker.register('./sw.js')
             .then(reg => {
                 console.log('Service Worker: 登録成功');
                 
-                // ★ 2. Blobの代わりに、メインスレッドから直接キャッシュへ画像を追加する
-                const CACHE_NAME = APP_CONFIG.storagePrefix + 'cache-v2';
+                // ★ キャッシュのバージョン名を v3 に更新し、ブラウザに変更を反映させる
+                const CACHE_NAME = APP_CONFIG.storagePrefix + 'cache-v3';
                 caches.open(CACHE_NAME).then(cache => {
                     const dynamicImages = [];
-                    // foodListから画像URLを自動抽出
                     foodList.forEach(area => {
                         if (area.menu) {
                             area.menu.forEach(shop => {
@@ -858,7 +859,6 @@ if ('serviceWorker' in navigator) {
                         }
                     });
                     
-                    // ベースURLとindex.htmlの両方をキャッシュし、パス不一致を防ぐ
                     const essentialUrls = [
                         './',
                         './index.html',
@@ -868,10 +868,67 @@ if ('serviceWorker' in navigator) {
                         'https://i-love-music-festivals.github.io/arabaki2026/arabaki2026.png',
                         'https://i-love-music-festivals.github.io/arabaki2026/icon.png',
                         'https://i-love-music-festivals.github.io/arabaki2026/arabaki26_areamap_ver02.jpg',
-                        'https://i-love-music-festivals.github.io/arabaki2026/tentarea_26.jpg'
+                        'https://i-love-music-festivals.github.io/arabaki2026/tentarea_26.jpg',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor1-iichiko.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor2-kirin-ichibanshibori.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor3-lawson.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor4-red-bull.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor5-aji-no-gyutan-kisuke.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor6-sendai-karamiso-ajiyoshi-ramen.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor7-rifu-cho.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor8-kesennuma-shi-to-hoya-boya-to-ogatore.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor9-shiogama-shi.png',
+'https://i-love-music-festivals.github.io/arabaki2026/sponsor10-watari-cho.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu1-team-minamisanriku.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu2-bistro-encore.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu3-primal.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu4-hakata-hakuten.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu5-nine-gate-burger.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu6-sumibiyaki-torimabushidon-organ.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu7-taiwan-shokudo-paozuya.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu8-fuunji-hinomoto.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu9-sendai-izakaya-shuhei.png',
+'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu10-istanbul-ginza.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru1-1-pound-steak-senmonten.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru2-Thai-Ryori-Aroi-Aroi.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru3-koenji-avocado-shokudo.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru4-wan-fu-chin.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru5-kingu-emon.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru6-rikyu.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru7-thanx.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru8-zao-onsen-otochaya.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru9-farmers-table-mano.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru10-chinami.png',
+'https://i-love-music-festivals.github.io/arabaki2026/tsugaru11-pizza-bakka.png',
+'https://i-love-music-festivals.github.io/arabaki2026/hatahata1-hatahata-bar-daigaku.png',
+'https://i-love-music-festivals.github.io/arabaki2026/hatahata2-rocky-stance.png',
+'https://i-love-music-festivals.github.io/arabaki2026/hatahata3-ny-hot-dog.png',
+'https://i-love-music-festivals.github.io/arabaki2026/hatahata4-curry-to-butadon-ishinomaki-yoshida-rock-shokudo.png',
+'https://i-love-music-festivals.github.io/arabaki2026/hatahata5-baran.png',
+'https://i-love-music-festivals.github.io/arabaki2026/hatahata6-mochimochi-potato-323-goshitsu.png',
+'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square1-sunny-site-coffee.png',
+'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square2-divertente.png',
+'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square3-yarn.png',
+'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square4-noodle-stand-kurihara-shoten.png',
+'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square5-tabisuru-paella.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field1-okinawa-ryori-marine.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field2-bifuteki-dynamite.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field3-fujisan-shokudo.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field4-mugitorojin.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field5-owada-ramen.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field6-hishimeki-do.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field7-ks-pit.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field8-maguro-donya-ito-suisan.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field9-rotisserie-chicken-senmonten-encinitas.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field10-gyoza-no-higuchi.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field11-nishikiya-kitchen.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field12-hakata-kojiya.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field13-confetti.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field14-kichimi-seimen.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field15-trailer-bar-haku.png',
+'https://i-love-music-festivals.github.io/arabaki2026/communication-field16-pizza-bravo.png'
                     ];
                     
-                    // 重複を排除してまとめてキャッシュ
                     const allUrlsToCache = [...new Set([...essentialUrls, ...dynamicImages])];
                     cache.addAll(allUrlsToCache).catch(err => console.log('一部のキャッシュに失敗しました', err));
                 });
@@ -882,19 +939,15 @@ if ('serviceWorker' in navigator) {
 
 // --- 初期ロード時のイベント実行 ---
 window.addEventListener('DOMContentLoaded', () => {
-    // コンフィグをHTMLに反映
     applyAppConfig();
 
-    // 前回開いていたタブを復元、なければ day1
     const lastTab = localStorage.getItem(LAST_TAB_KEY) || 'day1';
     switchTab(lastTab); 
 
-    // フードセクションと更新日時の初期描画
     renderFoodSection();
     displayLastModified();
     
-    // 時計と現在時刻ラインの定期更新
     updateClock();
-    setInterval(updateClock, 1000); // 1秒ごとに時計を更新
-    setInterval(updateCurrentTimeLine, 60000); // 1分ごとに赤いライン位置を更新
+    setInterval(updateClock, 1000); 
+    setInterval(updateCurrentTimeLine, 60000); 
 });
