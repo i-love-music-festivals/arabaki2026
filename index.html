@@ -47,6 +47,7 @@
                 <button class="tab-btn" id="btnFood" onclick="switchTab('food')">フード</button>
                 <button class="tab-btn" id="btnMap" onclick="switchTab('map')">マップ</button>
                 <button class="tab-btn" id="btnWeather" onclick="switchTab('weather')">天気</button>
+                <button class="tab-btn" id="btnMemo" onclick="switchTab('memo')">メモ</button>
             </div>
         </header>
 
@@ -98,7 +99,15 @@
                 <p>現在オフラインです。<br>天気情報を取得するにはインターネット接続が必要です。</p>
             </div>
         </div>
-
+<div id="memoSection" class="content-section">
+            <h2 class="memo-section-header">メモ</h2>
+            <div class="memo-notice">
+                ※注意点※<br>
+                ・ブラウザのキャッシュ（履歴データ等）を削除すると消えてしまいます。<br>
+                ・他のデバイス（スマホからPCなど）への共有はできません。
+            </div>
+            <textarea id="memoTextArea" placeholder="ライブの感想やメモを自由に書き込めます...（入力すると自動保存されます）"></textarea>
+        </div>
     </div>
 
     <script src="./script.js"></script>

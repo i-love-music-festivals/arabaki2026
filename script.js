@@ -309,6 +309,7 @@ let mapScale = 1.0; // マップのズーム倍率
 const FAV_KEY = APP_CONFIG.storagePrefix + 'favs';
 const FOOD_FAV_KEY = APP_CONFIG.storagePrefix + 'food_favs';
 const LAST_TAB_KEY = APP_CONFIG.storagePrefix + 'last_tab';
+const MEMO_KEY = APP_CONFIG.storagePrefix + 'memo';
 
 let favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || {};
 let foodFavoritesOrder = JSON.parse(localStorage.getItem(FOOD_FAV_KEY)) || [];
@@ -409,6 +410,9 @@ function switchTab(target) {
         document.getElementById('btnWeather').classList.add('active');
         document.getElementById('weatherSection').classList.add('active');
         checkWeatherOnlineStatus(); // ★ 天気タブ表示時にオンライン状態をチェック
+} else if (target === 'memo') {
+        document.getElementById('btnMemo').classList.add('active');
+        document.getElementById('memoSection').classList.add('active');
     } else {
         currentDay = (target === 'day1') ? 1 : 2;
         document.getElementById(target === 'day1' ? 'btnDay1' : 'btnDay2').classList.add('active');
@@ -951,4 +955,17 @@ window.addEventListener('DOMContentLoaded', () => {
     updateClock();
     setInterval(updateClock, 1000); 
     setInterval(updateCurrentTimeLine, 60000); 
+
+    // ★追加: メモデータの復元と自動保存の設定
+    const memoTextArea = document.getElementById('memoTextArea');
+    if (memoTextArea) {
+        // 保存されているメモがあれば読み込んで表示する
+        const savedMemo = localStorage.getItem(MEMO_KEY) || '';
+        memoTextArea.value = savedMemo;
+
+        // 文字が入力・削除されるたびにローカルストレージへ保存する
+        memoTextArea.addEventListener('input', () => {
+            localStorage.setItem(MEMO_KEY, memoTextArea.value);
+        });
+    }
 });
