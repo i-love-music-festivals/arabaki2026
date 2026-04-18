@@ -839,16 +839,16 @@ function displayLastModified() {
 }
 
 // --- サービスワーカー（オフライン動作・キャッシュ）の登録 ---
-// ★ 全画像を強制キャッシュするようなロジック
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         
         const pageUrl = location.href.split('?')[0]; 
         const cssUrl = new URL('./style.css', location.href).href; 
         const jsUrl = new URL('./script.js', location.href).href;  
+        const manifestUrl = new URL('./manifest.json', location.href).href; // manifestも追加
 
-        // 1. フードリストや静的画像のURLをすべて集める
-        const imageUrls = [
+        // 1. マップやアイコンなどの固定画像URLを配列にする
+        const staticImages = [
             'https://i-love-music-festivals.github.io/arabaki2026/arabaki2026.png',
 'https://i-love-music-festivals.github.io/arabaki2026/icon.png',
 'https://i-love-music-festivals.github.io/arabaki2026/arabaki26_areamap_ver02.jpg',
@@ -912,53 +912,36 @@ if ('serviceWorker' in navigator) {
 'https://i-love-music-festivals.github.io/arabaki2026/communication-field15-trailer-bar-haku.png',
 'https://i-love-music-festivals.github.io/arabaki2026/communication-field16-pizza-bravo.png'
         ];
-        
+
+        // 2. フードデータ(foodList)から画像URLを自動で全て抽出する
         foodList.forEach(area => {
-            area.menu.forEach(shop => {
-                if (shop.img) imageUrls.push(shop.img);
-            });
+            if (area.menu) {
+                area.menu.forEach(shop => {
+                    if (shop.img) {
+                        staticImages.push(shop.img);
+                    }
+                });
+            }
         });
 
-        const uniqueImageUrls = [...new Set(imageUrls)];
+        // 3. Service Workerの文字列内に埋め込めるようにフォーマットする ('url1', 'url2'...)
+        const imageUrlsStr = staticImages.map(url => `'${url}'`).join(',\n                ');
 
+        // ★ v1 から v2 に変更してキャッシュを更新させる
         const swCode = `
-            const CACHE_NAME = '${APP_CONFIG.storagePrefix}cache-v2'; // キャッシュを新しくする
-            
-            // 2. HTML, CSS, JS に加えて、全画像URLをキャッシュ対象に合体
+            const CACHE_NAME = '${APP_CONFIG.storagePrefix}cache-v2';
             const urlsToCache = [
                 '${pageUrl}',
                 '${cssUrl}',
                 '${jsUrl}',
-                ...${JSON.stringify(uniqueImageUrls)}
+                '${manifestUrl}',
+                ${imageUrlsStr}
             ];
 
             self.addEventListener('install', event => {
+                // 初回インストール時にurlsToCacheのファイルを全てダウンロードして保存
                 event.waitUntil(
-                    caches.open(CACHE_NAME).then(cache => {
-                        // cache.addAll は1つでもエラーになると全て失敗してしまうため、個別にキャッシュする
-                        return Promise.all(
-                            urlsToCache.map(url => {
-                                return cache.add(url).catch(err => {
-                                    console.warn('キャッシュスキップ (画像が見つからない等):', url);
-                                });
-                            })
-                        );
-                    }).then(() => self.skipWaiting())
-                );
-            });
-
-            // 古いバージョンのキャッシュをお掃除する処理
-            self.addEventListener('activate', event => {
-                event.waitUntil(
-                    caches.keys().then(cacheNames => {
-                        return Promise.all(
-                            cacheNames.map(cacheName => {
-                                if (cacheName !== CACHE_NAME && cacheName.startsWith('${APP_CONFIG.storagePrefix}')) {
-                                    return caches.delete(cacheName);
-                                }
-                            })
-                        );
-                    }).then(() => self.clients.claim())
+                    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
                 );
             });
 
@@ -966,10 +949,10 @@ if ('serviceWorker' in navigator) {
                 event.respondWith(
                     caches.match(event.request).then(response => {
                         if (response) return response; 
-                        
-                        // 3. fetch時の厳しすぎる条件 (type !== 'basic') を取り除き、外部の画像も柔軟にキャッシュできるようにした
                         return fetch(event.request).then(fetchRes => {
-                            if (!fetchRes) return fetchRes;
+                            if (!fetchRes || fetchRes.status !== 200 || fetchRes.type !== 'basic') {
+                                return fetchRes;
+                            }
                             const responseToCache = fetchRes.clone();
                             caches.open(CACHE_NAME).then(cache => {
                                 cache.put(event.request, responseToCache);
@@ -979,12 +962,27 @@ if ('serviceWorker' in navigator) {
                     })
                 );
             });
+
+            // 古いキャッシュ（v1など）を削除する処理を追加
+            self.addEventListener('activate', event => {
+                event.waitUntil(
+                    caches.keys().then(cacheNames => {
+                        return Promise.all(
+                            cacheNames.filter(name => {
+                                return name.startsWith('${APP_CONFIG.storagePrefix}') && name !== CACHE_NAME;
+                            }).map(name => {
+                                return caches.delete(name);
+                            })
+                        );
+                    })
+                );
+            });
         `;
         const blob = new Blob([swCode], { type: 'application/javascript' });
         const swUrl = URL.createObjectURL(blob);
 
         navigator.serviceWorker.register(swUrl)
-            .then(reg => console.log('Service Worker: 全画像のオフラインキャッシュ完了'))
+            .then(reg => console.log('Service Worker: オフラインキャッシュ有効（全画像含む）'))
             .catch(err => console.log('Service Worker: 登録失敗', err));
     });
 }
