@@ -838,151 +838,44 @@ function displayLastModified() {
     }
 }
 
-// --- サービスワーカー（オフライン動作・キャッシュ）の登録 ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        
-        const pageUrl = location.href.split('?')[0]; 
-        const cssUrl = new URL('./style.css', location.href).href; 
-        const jsUrl = new URL('./script.js', location.href).href;  
-        const manifestUrl = new URL('./manifest.json', location.href).href; // manifestも追加
-
-        // 1. マップやアイコンなどの固定画像URLを配列にする
-        const staticImages = [
-            'https://i-love-music-festivals.github.io/arabaki2026/arabaki2026.png',
-'https://i-love-music-festivals.github.io/arabaki2026/icon.png',
-'https://i-love-music-festivals.github.io/arabaki2026/arabaki26_areamap_ver02.jpg',
-'https://i-love-music-festivals.github.io/arabaki2026/tentarea_26.jpg',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor1-iichiko.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor2-kirin-ichibanshibori.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor3-lawson.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor4-red-bull.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor5-aji-no-gyutan-kisuke.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor6-sendai-karamiso-ajiyoshi-ramen.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor7-rifu-cho.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor8-kesennuma-shi-to-hoya-boya-to-ogatore.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor9-shiogama-shi.png',
-'https://i-love-music-festivals.github.io/arabaki2026/sponsor10-watari-cho.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu1-team-minamisanriku.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu2-bistro-encore.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu3-primal.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu4-hakata-hakuten.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu5-nine-gate-burger.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu6-sumibiyaki-torimabushidon-organ.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu7-taiwan-shokudo-paozuya.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu8-fuunji-hinomoto.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu9-sendai-izakaya-shuhei.png',
-'https://i-love-music-festivals.github.io/arabaki2026/ban-etsu10-istanbul-ginza.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru1-1-pound-steak-senmonten.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru2-Thai-Ryori-Aroi-Aroi.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru3-koenji-avocado-shokudo.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru4-wan-fu-chin.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru5-kingu-emon.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru6-rikyu.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru7-thanx.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru8-zao-onsen-otochaya.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru9-farmers-table-mano.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru10-chinami.png',
-'https://i-love-music-festivals.github.io/arabaki2026/tsugaru11-pizza-bakka.png',
-'https://i-love-music-festivals.github.io/arabaki2026/hatahata1-hatahata-bar-daigaku.png',
-'https://i-love-music-festivals.github.io/arabaki2026/hatahata2-rocky-stance.png',
-'https://i-love-music-festivals.github.io/arabaki2026/hatahata3-ny-hot-dog.png',
-'https://i-love-music-festivals.github.io/arabaki2026/hatahata4-curry-to-butadon-ishinomaki-yoshida-rock-shokudo.png',
-'https://i-love-music-festivals.github.io/arabaki2026/hatahata5-baran.png',
-'https://i-love-music-festivals.github.io/arabaki2026/hatahata6-mochimochi-potato-323-goshitsu.png',
-'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square1-sunny-site-coffee.png',
-'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square2-divertente.png',
-'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square3-yarn.png',
-'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square4-noodle-stand-kurihara-shoten.png',
-'https://i-love-music-festivals.github.io/arabaki2026/food-truck-square5-tabisuru-paella.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field1-okinawa-ryori-marine.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field2-bifuteki-dynamite.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field3-fujisan-shokudo.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field4-mugitorojin.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field5-owada-ramen.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field6-hishimeki-do.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field7-ks-pit.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field8-maguro-donya-ito-suisan.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field9-rotisserie-chicken-senmonten-encinitas.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field10-gyoza-no-higuchi.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field11-nishikiya-kitchen.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field12-hakata-kojiya.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field13-confetti.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field14-kichimi-seimen.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field15-trailer-bar-haku.png',
-'https://i-love-music-festivals.github.io/arabaki2026/communication-field16-pizza-bravo.png'
-        ];
-
-        // 2. フードデータ(foodList)から画像URLを自動で全て抽出する
-        foodList.forEach(area => {
-            if (area.menu) {
-                area.menu.forEach(shop => {
-                    if (shop.img) {
-                        staticImages.push(shop.img);
-                    }
-                });
-            }
-        });
-
-        // 3. Service Workerの文字列内に埋め込めるようにフォーマットする ('url1', 'url2'...)
-        const imageUrlsStr = staticImages.map(url => `'${url}'`).join(',\n                ');
-
-        // ★ v1 から v2 に変更してキャッシュを更新させる
-        const swCode = `
-            const CACHE_NAME = '${APP_CONFIG.storagePrefix}cache-v2';
-            const urlsToCache = [
-                '${pageUrl}',
-                '${cssUrl}',
-                '${jsUrl}',
-                '${manifestUrl}',
-                ${imageUrlsStr}
-            ];
-
-            self.addEventListener('install', event => {
-                // 初回インストール時にurlsToCacheのファイルを全てダウンロードして保存
-                event.waitUntil(
-                    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-                );
-            });
-
-            self.addEventListener('fetch', event => {
-                event.respondWith(
-                    caches.match(event.request).then(response => {
-                        if (response) return response; 
-                        return fetch(event.request).then(fetchRes => {
-                            if (!fetchRes || fetchRes.status !== 200 || fetchRes.type !== 'basic') {
-                                return fetchRes;
-                            }
-                            const responseToCache = fetchRes.clone();
-                            caches.open(CACHE_NAME).then(cache => {
-                                cache.put(event.request, responseToCache);
+        // ★ 1. 外部ファイルとしてService Workerを登録
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+                console.log('Service Worker: 登録成功');
+                
+                // ★ 2. Blobの代わりに、メインスレッドから直接キャッシュへ画像を追加する
+                const CACHE_NAME = APP_CONFIG.storagePrefix + 'cache-v2';
+                caches.open(CACHE_NAME).then(cache => {
+                    const dynamicImages = [];
+                    // foodListから画像URLを自動抽出
+                    foodList.forEach(area => {
+                        if (area.menu) {
+                            area.menu.forEach(shop => {
+                                if (shop.img) dynamicImages.push(shop.img);
                             });
-                            return fetchRes;
-                        }).catch(() => {});
-                    })
-                );
-            });
-
-            // 古いキャッシュ（v1など）を削除する処理を追加
-            self.addEventListener('activate', event => {
-                event.waitUntil(
-                    caches.keys().then(cacheNames => {
-                        return Promise.all(
-                            cacheNames.filter(name => {
-                                return name.startsWith('${APP_CONFIG.storagePrefix}') && name !== CACHE_NAME;
-                            }).map(name => {
-                                return caches.delete(name);
-                            })
-                        );
-                    })
-                );
-            });
-        `;
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-
-        navigator.serviceWorker.register(swUrl)
-            .then(reg => console.log('Service Worker: オフラインキャッシュ有効（全画像含む）'))
+                        }
+                    });
+                    
+                    // ベースURLとindex.htmlの両方をキャッシュし、パス不一致を防ぐ
+                    const essentialUrls = [
+                        './',
+                        './index.html',
+                        './style.css',
+                        './script.js',
+                        './manifest.json',
+                        'https://i-love-music-festivals.github.io/arabaki2026/arabaki2026.png',
+                        'https://i-love-music-festivals.github.io/arabaki2026/icon.png',
+                        'https://i-love-music-festivals.github.io/arabaki2026/arabaki26_areamap_ver02.jpg',
+                        'https://i-love-music-festivals.github.io/arabaki2026/tentarea_26.jpg'
+                    ];
+                    
+                    // 重複を排除してまとめてキャッシュ
+                    const allUrlsToCache = [...new Set([...essentialUrls, ...dynamicImages])];
+                    cache.addAll(allUrlsToCache).catch(err => console.log('一部のキャッシュに失敗しました', err));
+                });
+            })
             .catch(err => console.log('Service Worker: 登録失敗', err));
     });
 }
