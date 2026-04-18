@@ -421,6 +421,19 @@ function switchTab(target) {
     }
     
     localStorage.setItem(LAST_TAB_KEY, target);
+
+        if (tabId === 'weather') {
+        // iframe側の自動スクロールに負けないよう、一瞬(10ミリ秒)待ってから一番上に戻す
+        setTimeout(() => {
+            // weatherSection自体のスクロールを一番上に戻す
+            const weatherSection = document.getElementById('weatherSection');
+            if (weatherSection) {
+                weatherSection.scrollTop = 0;
+            }
+            // 念のため画面全体のスクロールも一番上に戻す
+            window.scrollTo(0, 0);
+        }, 10);
+    }
 }
 
 /**
