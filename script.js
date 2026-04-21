@@ -21,10 +21,10 @@ const APP_CONFIG = {
 // --- 2. ステージ情報定義 ---
 const stagesInfo = [
     { id: 'michinoku', name: '陸奥', color: '#D4AF37' },
-    { id: 'arahabaki', name: '荒吐エレアコ', color: '#9932CC' },
+    { id: 'arahabaki', name: '荒吐', color: '#9932CC' },
     { id: 'hatahata', name: '鰰', color: '#B0003A' },
     { id: 'tsugaru', name: '津軽', color: '#8B8B00' },
-    { id: 'hanagasa', name: '花笠スクエア', color: '#E83929' },
+    { id: 'hanagasa', name: '花笠', color: '#E83929' },
     { id: 'banetsu', name: '磐越', color: '#0077B6' }
 ];
 
