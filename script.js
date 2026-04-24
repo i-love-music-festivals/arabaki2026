@@ -2,21 +2,18 @@
  * ==========================================
  * 【設定・データエリア】
  * 今後、別のフェスや別年度に流用する場合は、
- * HTMLやCSSを一切触らず、この APP_CONFIG だけを書き換えてください。
+ * HTMLやCSSを一切触らず、この APP_CONFIG とデータだけを書き換えてください。
  * ==========================================
  */
 
 // --- 1. アプリケーション全体の設定 ---
 const APP_CONFIG = {
-    // 【基本情報】フェスの名前やURLなどを設定します
     festivalName: "ARABAKI ROCK FEST.26<br>非公式アプリ",
-    pageTitle: "ARABAKI ROCK FEST.26",
     officialUrl: "https://arabaki.com/",
-    
-    // 【システム設定】保存データの名前や時間の範囲を決めます
     storagePrefix: "arabaki_2026_", 
     startHour: 9, 
     endHour: 25,  
+    // ここの日数を3日や1日に変えると、自動的に画面のタブボタンも増減します
     days: [
         { id: 'day1', label: '4/25 (土)' },
         { id: 'day2', label: '4/26 (日)' }
@@ -34,14 +31,9 @@ const APP_CONFIG = {
         text: "出典：ARABAKI ROCK FEST.26",
         url: "https://arabaki.com/area/"
     },
-
-    // --- アプリの「動作・機能」を制御するフラグ ---
     settings: {
-        // true で時間が被った場合、ステージ順序を優先して並べる
         priorityStageOrder: true
     },
-
-    // --- 画面に表示されるすべてのテキスト（HTMLを空箱にするため） ---
     ui: {
         officialLinkText: "<span class='small-text'>公式</span>HP",
         disclaimer: "※各アーティストのジャンルはAIによる判定です。<br>※最新情報は公式HPで確認してください。",
@@ -79,16 +71,18 @@ const stagesInfo = [
 ];
 
 // --- 3. データ作成用ヘルパー関数 ---
-// アーティスト情報を短く書くための専用関数です
+// タイムテーブルのデータを短く書くための補助関数です
 const e = (name, start, end, genre = "", options = {}) => ({ name, start, end, genre, ...options });
 
+// お気に入り保存用のIDを作る関数です
 function getFavId(dayKey, stageId, artistName) {
     const cleanName = artistName.replace(/<[^>]*>/g, '').replace(/[^a-zA-Z0-9ぁ-んァ-ヶー一-龠]/g, '');
     return `${dayKey}_${stageId}_${cleanName}`;
 }
 
-// --- 4. フードデータ一覧（省略：長いため変更なし） ---
-const foodList = [
+// ==========================================
+// --- 4. フードデータ一覧 ---
+const foodList = [ 
     {
         name: "SPONSOR",
         menu: [
@@ -453,6 +447,7 @@ const artistYomiDict = {
     "SHISHAMO": "ししゃも"
 };
 
+// 検索時の揺れを吸収するため、文字を平仮名や小文字に統一する関数です
 function normalizeForSearch(str) {
     if (!str) return "";
     let normalized = str.replace(/[\u30a1-\u30f6]/g, function(match) {
@@ -468,34 +463,61 @@ function normalizeForSearch(str) {
  * データの意味に従って画面を作るだけの処理群です
  * ==========================================
  */
-let currentDay = 1;
+
+// --- 状態を管理する変数 ---
+let currentDay = 1; // 選択中のタブがDay1かDay2か等を覚えておきます
 let mapScale = 1.0;
 let fullArtistData = [];
 
+// ブラウザにデータを保存するための「引き出しの名前（キー名）」です
 const FAV_KEY = APP_CONFIG.storagePrefix + 'favs';
 const FOOD_FAV_KEY = APP_CONFIG.storagePrefix + 'food_favs';
 const LAST_TAB_KEY = APP_CONFIG.storagePrefix + 'last_tab';
 const MEMO_KEY = APP_CONFIG.storagePrefix + 'memo';
 
+// 保存されているお気に入りデータを読み込みます
 let favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || {};
 let foodFavoritesOrder = JSON.parse(localStorage.getItem(FOOD_FAV_KEY)) || [];
 
+// お気に入りデータをブラウザに保存する関数です
 const saveFavorites = () => localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
 const saveFoodFavorites = () => localStorage.setItem(FOOD_FAV_KEY, JSON.stringify(foodFavoritesOrder));
+
+// --- 現在時刻の計算ロジック ---
+// 指定した開催日の「開始時刻から現在何分経過しているか」を計算します
+function getCurrentMinsForDay(dayKey) {
+    const now = new Date();
+    const dataDate = new Date(timetableData[dayKey].date);
+    const isToday = now.toDateString() === dataDate.toDateString();
+    
+    // 深夜帯をフェスの「同日」として扱うため、カレンダー上の翌日を計算します
+    const targetNextDay = new Date(dataDate);
+    targetNextDay.setDate(targetNextDay.getDate() + 1); 
+    const isNextDayEarly = now.getHours() < APP_CONFIG.startHour && now.toDateString() === targetNextDay.toDateString();
+
+    // もし今日がその開催日であれば、経過した分数を計算して返します
+    if (isToday || isNextDayEarly) {
+        return (now.getHours() + (isNextDayEarly ? 24 : 0) - APP_CONFIG.startHour) * 60 + now.getMinutes();
+    }
+    // 開催日以外の場合は -1 を返します
+    return -1; 
+}
 
 // --- HTMLの空箱に文字やデータを流し込む関数 ---
 function applyAppConfig() {
     const ui = APP_CONFIG.ui;
     
-    if(document.getElementById('pageTitle')) document.getElementById('pageTitle').textContent = APP_CONFIG.pageTitle;
+    // アプリタイトルなどをHTMLに反映します
     if(document.getElementById('appTitle')) document.getElementById('appTitle').innerHTML = APP_CONFIG.festivalName;
     
+    // 公式リンクの設定を反映します
     const officialLinkEl = document.getElementById('officialLink');
     if(officialLinkEl) {
         officialLinkEl.href = APP_CONFIG.officialUrl;
         officialLinkEl.innerHTML = ui.officialLinkText;
     }
 
+    // 各種テキストをHTMLに流し込みます
     if(document.getElementById('disclaimerText')) document.getElementById('disclaimerText').innerHTML = ui.disclaimer;
     if(document.getElementById('artistSearchInput')) document.getElementById('artistSearchInput').placeholder = ui.searchPlaceholder;
     if(document.getElementById('btnFood')) document.getElementById('btnFood').textContent = ui.tabFood;
@@ -517,9 +539,22 @@ function applyAppConfig() {
     if(document.getElementById('btnZoomOut')) document.getElementById('btnZoomOut').textContent = ui.mapZoomOut;
     if(document.getElementById('btnZoomReset')) document.getElementById('btnZoomReset').textContent = ui.mapZoomReset;
 
-    if (APP_CONFIG.days[0]) document.getElementById('btnDay1').textContent = APP_CONFIG.days[0].label;
-    if (APP_CONFIG.days[1]) document.getElementById('btnDay2').textContent = APP_CONFIG.days[1].label;
+    // 流用しやすいように、APP_CONFIG.days の日数に合わせてDayタブボタンを自動生成します
+    const tabContainer = document.getElementById('tabContainer');
+    const firstStaticTab = document.getElementById('btnFood'); 
+    
+    document.querySelectorAll('.day-tab-btn').forEach(el => el.remove());
 
+    APP_CONFIG.days.forEach((day) => {
+        const btnId = 'btn' + day.id.charAt(0).toUpperCase() + day.id.slice(1);
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn day-tab-btn';
+        btn.id = btnId;
+        btn.textContent = day.label;
+        tabContainer.insertBefore(btn, firstStaticTab);
+    });
+
+    // マップ画像をHTMLに追加します
     const mapWrapper = document.getElementById('mapWrapper');
     if (mapWrapper && APP_CONFIG.mapImages) {
         APP_CONFIG.mapImages.forEach(src => {
@@ -531,6 +566,7 @@ function applyAppConfig() {
         });
     }
 
+    // 天気情報をHTMLに追加します
     if(document.getElementById('weatherTitle')) document.getElementById('weatherTitle').textContent = APP_CONFIG.weather.areaName;
     const weatherContainer = document.getElementById('weatherIframeContainer');
     if (weatherContainer && APP_CONFIG.weather.iframeUrl) {
@@ -540,30 +576,31 @@ function applyAppConfig() {
         weatherContainer.appendChild(iframe);
     }
 
+    // 出典情報を設定します
     const sourceHtml = `${APP_CONFIG.source.text}<br>（<a href="${APP_CONFIG.source.url}" target="_blank" rel="noopener noreferrer" class="source-link">${APP_CONFIG.source.url}</a>）`;
     document.querySelectorAll('.source-credit').forEach(el => el.innerHTML = sourceHtml);
 }
 
 // --- 画面上のボタンにイベント（クリック時の動作）を一括で割り当てる関数 ---
 function setupEventListeners() {
-    // 1. タブ切り替えボタン
-    document.getElementById('btnDay1').addEventListener('click', () => switchTab('day1'));
-    document.getElementById('btnDay2').addEventListener('click', () => switchTab('day2'));
+    // 1. タブ切り替えボタンのクリックイベント
+    APP_CONFIG.days.forEach(day => {
+        const btnId = 'btn' + day.id.charAt(0).toUpperCase() + day.id.slice(1);
+        const btn = document.getElementById(btnId);
+        if(btn) btn.addEventListener('click', () => switchTab(day.id));
+    });
+    
     document.getElementById('btnFood').addEventListener('click', () => switchTab('food'));
     document.getElementById('btnMap').addEventListener('click', () => switchTab('map'));
     document.getElementById('btnWeather').addEventListener('click', () => switchTab('weather'));
     document.getElementById('btnMemo').addEventListener('click', () => switchTab('memo'));
 
-    // 2. マップのズームボタン
+    // 2. マップのズームボタンのクリックイベント
     document.getElementById('btnZoomIn').addEventListener('click', () => zoomMap(0.2));
     document.getElementById('btnZoomOut').addEventListener('click', () => zoomMap(-0.2));
     document.getElementById('btnZoomReset').addEventListener('click', () => resetZoom());
 
-    // 3. タイムテーブルの横スクロール連動
-    const ttWrapper = document.getElementById('ttWrapper');
-    if(ttWrapper) ttWrapper.addEventListener('scroll', syncScroll);
-
-    // 4. タイムテーブル内の「★ボタン」のクリック
+    // 3. タイムテーブル内の「★ボタン」のクリックイベント
     document.getElementById('gridContainer').addEventListener('click', (e) => {
         if (e.target.classList.contains('fav-btn')) {
             const favId = e.target.getAttribute('data-fav-id');
@@ -571,7 +608,7 @@ function setupEventListeners() {
         }
     });
 
-    // 5. フード画面の「エリア開閉」と「★ボタン」のクリック
+    // 4. フード画面の「エリア開閉」と「★ボタン」のクリックイベント
     document.getElementById('foodContainer').addEventListener('click', (e) => {
         const toggleEl = e.target.closest('.food-area-toggle');
         if (toggleEl) {
@@ -579,19 +616,17 @@ function setupEventListeners() {
             return;
         }
         if (e.target.classList.contains('food-fav-btn')) {
-            const shopName = e.target.getAttribute('data-shop');
-            const areaName = e.target.getAttribute('data-area');
-            if (shopName && areaName) toggleFoodFav(shopName, areaName);
+            const favId = e.target.getAttribute('data-fav-id');
+            if (favId) toggleFoodFav(favId);
         }
     });
 
-    // 6. 検索結果モーダル内の「★ボタン」のクリック
+    // 5. 検索結果モーダル内の「★ボタン」のクリックイベント
     document.getElementById('searchModalContent').addEventListener('click', (e) => {
         if (e.target.classList.contains('fav-btn')) {
             const favId = e.target.getAttribute('data-fav-id');
             if (favId) {
                 toggleFav(favId);
-                // ボタンと親ブロックの見た目を切り替え
                 const btn = e.target;
                 const block = btn.closest('.artist-block');
                 if (favorites[favId]) {
@@ -606,79 +641,83 @@ function setupEventListeners() {
     });
 }
 
+// タイムテーブルのお気に入り状態を切り替える関数です
 function toggleFav(id) {
     favorites[id] ? delete favorites[id] : favorites[id] = true;
     saveFavorites();
-    renderTimetable();
+    renderTimetable(); 
 }
 
-function toggleFoodFav(shopName, areaName) {
-    const decodedShopName = decodeURIComponent(shopName);
-    const decodedAreaName = decodeURIComponent(areaName);
-    const id = decodedAreaName + "::" + decodedShopName; 
-    
+// フードのお気に入り状態を切り替える関数です
+function toggleFoodFav(id) {
     const index = foodFavoritesOrder.findIndex(item => item.id === id);
     if (index > -1) {
         foodFavoritesOrder.splice(index, 1); 
     } else {
-        foodFavoritesOrder.push({ id: id, shopName: decodedShopName, areaName: decodedAreaName }); 
+        const [areaName, shopName] = id.split("::");
+        foodFavoritesOrder.push({ id: id, shopName: shopName, areaName: areaName }); 
     }
     saveFoodFavorites();
     renderFoodSection(); 
 }
 
+// フードのエリア（アコーディオン）を開閉する関数です
 function toggleFoodArea(element) {
     element.classList.toggle('open');
     const content = element.nextElementSibling;
     if(content) content.classList.toggle('open');
 }
 
-/**
- * "HH:MM" 形式の時刻を、タイムテーブル上の表示位置（分単位）に変換します。
- */
+// "HH:MM" 形式の時刻を、タイムテーブル上の表示位置（分単位）に変換します
 function timeToMins(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
     const adjustedH = h < APP_CONFIG.startHour ? h + 24 : h;
     return (adjustedH - APP_CONFIG.startHour) * 60 + m;
 }
 
+// "HH:MM" を "H:MM" に整えて表示するための関数です
 function formatTimeDisplay(timeStr) {
     let [h, m] = timeStr.split(':').map(Number);
     if(h >= 24) h -= 24;
     return `${h}:${m.toString().padStart(2,'0')}`;
 }
 
-function syncScroll() {
-    const wrapper = document.getElementById('ttWrapper');
-    document.getElementById('headerWrapper').scrollLeft = wrapper.scrollLeft;
-}
-
+// タブを切り替える関数です
 function switchTab(target) {
+    // 全てのタブと画面から 'active' クラスを外します
     document.querySelectorAll('.tab-btn, .content-section').forEach(el => el.classList.remove('active'));
 
-    if (target === 'day1' || target === 'day2') {
-        currentDay = (target === 'day1') ? 1 : 2;
-        document.getElementById(target === 'day1' ? 'btnDay1' : 'btnDay2').classList.add('active');
+    const dayMatch = target.match(/^day(\d+)$/);
+    
+    if (dayMatch) {
+        currentDay = parseInt(dayMatch[1]);
+        const btnId = 'btnDay' + currentDay;
+        const btnEl = document.getElementById(btnId);
+        if(btnEl) btnEl.classList.add('active');
         document.getElementById('timetableSection').classList.add('active');
-        renderTimetable();
+        renderTimetable(); 
     } else {
         const btnId = 'btn' + target.charAt(0).toUpperCase() + target.slice(1);
-        document.getElementById(btnId).classList.add('active');
-        document.getElementById(target + 'Section').classList.add('active');
+        const btnEl = document.getElementById(btnId);
+        if(btnEl) btnEl.classList.add('active');
+        const sectionEl = document.getElementById(target + 'Section');
+        if(sectionEl) sectionEl.classList.add('active');
     }
     
+    // 天気タブの場合はオフラインかどうかチェックします
     if (target === 'weather') {
         checkWeatherOnlineStatus(); 
         const weatherSection = document.getElementById('weatherSection');
         if (weatherSection) {
             weatherSection.scrollTop = 0;
-            window.scrollTo(0, 0); 
         }
     }
     
+    // 次回開いた時のために最後に開いたタブを記憶します
     localStorage.setItem(LAST_TAB_KEY, target);
 }
 
+// ネットに繋がっているか確認する関数です（天気用）
 function checkWeatherOnlineStatus() {
     const weatherSection = document.getElementById('weatherSection');
     if (weatherSection) {
@@ -692,15 +731,17 @@ function checkWeatherOnlineStatus() {
 window.addEventListener('online', checkWeatherOnlineStatus);
 window.addEventListener('offline', checkWeatherOnlineStatus);
 
+// タイムテーブルのステージ名（ヘッダー）を描画する関数です
 function renderHeaders(myttCols) {
     let html = '';
     if(myttCols > 0) {
-        html += `<div class="stage-header mytt" style="width: calc(var(--col-width) * ${myttCols});">
+        html += `<div class="stage-header mytt" style="--mytt-cols: ${myttCols};">
                     <div class="stage-name mytt">マイタイテ</div>
                  </div>`;
     }
     stagesInfo.forEach(stage => {
-        const style = `style="background-color: ${stage.color}"`;
+        // 色情報はCSSの変数として渡します
+        const style = `style="--stage-color: ${stage.color};"`;
         html += `<div class="stage-header">
                     <div class="stage-name" ${style}>${stage.name}</div>
                  </div>`;
@@ -708,7 +749,7 @@ function renderHeaders(myttCols) {
     document.getElementById('stageHeaders').innerHTML = html;
 }
 
-// --- HTMLを生成する際、onclick の代わりに data-属性（荷札）を付けます ---
+// 1つのアーティストのブロック（四角い箱）のHTMLを作る関数です
 function getArtistHtml(artist, stage, dayKey, isMyTT = false, currentMins = -1) {
     const startMin = timeToMins(artist.start);
     const endMin = timeToMins(artist.end);
@@ -717,21 +758,22 @@ function getArtistHtml(artist, stage, dayKey, isMyTT = false, currentMins = -1) 
     const favId = getFavId(dayKey, stage.id, artist.name);
     const isFav = favorites[favId];
     
-    const boxBgColor = artist.isLightBg ? `${stage.color}b3` : stage.color;
-
+    // 現在時刻がこのアーティストの演奏時間内かどうか判定します
     let isPlaying = false;
     if (currentMins >= startMin && currentMins < endMin) {
         isPlaying = true;
     }
 
-    const classes = ['artist-block', isFav && 'favorited', isPlaying && 'playing'].filter(Boolean).join(' ');
+    // 色を薄くする（is-light-bg）などの「意味」だけをCSSのクラスとして渡します
+    const classes = ['artist-block', isFav && 'favorited', isPlaying && 'playing', artist.isLightBg && 'is-light-bg'].filter(Boolean).join(' ');
     
+    // 【ルール厳守】マイタイムテーブル用のステージバッジHTML（配置は一切変更していません）
     const stageBadgeHtml = isMyTT ? `<div class="mytt-stage-name">${stage.name}</div>` : '';
 
     if (artist.isSpecialLayout) {
         const displayTime = artist.displayTime || `${formatTimeDisplay(artist.start)}-`;
-        const inlineStageBadge = isMyTT ? `<span class="mytt-stage-name" style="margin-right:4px;">${stage.name}</span>` : '';
-        return `<div class="${classes} artist-block-special" style="top:${startMin*2}px; height:${duration*2}px; background-color:${boxBgColor};">
+        const inlineStageBadge = isMyTT ? `<span class="mytt-stage-name inline-badge">${stage.name}</span>` : '';
+        return `<div class="${classes} artist-block-special" style="--start-min: ${startMin}; --duration: ${duration}; --artist-bg: ${stage.color};">
                     ${inlineStageBadge}
                     <span class="artist-time">${displayTime}</span>
                     <span class="artist-name">${artist.name}</span>
@@ -743,7 +785,7 @@ function getArtistHtml(artist, stage, dayKey, isMyTT = false, currentMins = -1) 
     const timeText = artist.hideEndTime ? `${formatTimeDisplay(artist.start)}-` : `${formatTimeDisplay(artist.start)}-${formatTimeDisplay(artist.end)}`;
     const metaHtml = displayGenre ? `<div class="artist-meta">${displayGenre}</div>` : '';
     
-    return `<div class="${classes}" style="top:${startMin*2}px; height:${duration*2}px; background-color:${boxBgColor};">
+    return `<div class="${classes}" style="--start-min: ${startMin}; --duration: ${duration}; --artist-bg: ${stage.color};">
                 ${stageBadgeHtml}
                 <div class="artist-top">
                     <span class="artist-time">${timeText}</span>
@@ -754,7 +796,10 @@ function getArtistHtml(artist, stage, dayKey, isMyTT = false, currentMins = -1) 
             </div>`;
 }
 
+// ブロックからはみ出る文字のサイズを自動で小さくする関数です
 function adjustFontSize() {
+    // ※この処理はブラウザへの計算負荷（レイアウトスラッシング）がやや高めですが、
+    // 長いバンド名を綺麗に収めるために現状維持としています。
     document.querySelectorAll('.artist-block:not(.food-block):not(.search-modal-content .artist-block)').forEach(block => {
         const nameEl = block.querySelector('.artist-name');
         const timeEl = block.querySelector('.artist-time');
@@ -787,26 +832,22 @@ function adjustFontSize() {
     });
 }
 
+// タイムテーブル全体を描画する関数です
 function renderTimetable() {
     const dayKey = `day${currentDay}`;
     const data = timetableData[dayKey];
+    if (!data) return; // データが存在しない場合は処理を抜けます
 
+    // 時間の目盛りを作ります
     let timeHtml = '';
     for(let h = APP_CONFIG.startHour; h <= APP_CONFIG.endHour; h++) {
         timeHtml += `<div class="time-slot"><span>${h >= 24 ? h-24 : h}:00</span></div>`;
     }
     document.getElementById('timeCol').innerHTML = timeHtml;
 
-    const now = new Date();
-    const dataDate = new Date(timetableData[dayKey].date);
-    const isToday = now.toDateString() === dataDate.toDateString();
-    const isNextDayEarly = now.getHours() < APP_CONFIG.startHour && now.getDate() === dataDate.getDate() + 1;
-    let currentMins = -1; 
+    const currentMins = getCurrentMinsForDay(dayKey);
 
-    if (isToday || isNextDayEarly) {
-        currentMins = (now.getHours() + (isNextDayEarly ? 24 : 0) - APP_CONFIG.startHour) * 60 + now.getMinutes();
-    }
-
+    // マイタイムテーブル（お気に入り）に登録されたアーティストを集めます
     let myTtItems = [];
     stagesInfo.forEach((stage, stageIndex) => {
         (data[stage.id] || []).forEach(artist => {
@@ -824,6 +865,7 @@ function renderTimetable() {
         myTtItems.sort((a,b) => timeToMins(a.artist.start) - timeToMins(b.artist.start));
     }
 
+    // 時間が被っている場合は横に並べる処理（カラム分け）を行います
     let myTtColumns = []; 
     myTtItems.forEach(item => {
         let maxOverlapCol = -1;
@@ -853,6 +895,7 @@ function renderTimetable() {
     const myTtColCount = myTtItems.length ? myTtColumns.length : 0;
     renderHeaders(myTtColCount); 
 
+    // HTMLに変換して流し込みます
     let gridHtml = '';
     if(myTtColCount > 0) {
         myTtColumns.forEach(col => {
@@ -865,6 +908,7 @@ function renderTimetable() {
         gridHtml += `<div class="grid-col"><div class="grid-bg-lines"></div>${content}</div>`;
     });
 
+    // ここで現在時刻の線をHTMLの最後に追加しています
     gridHtml += `<div class="current-time-line" id="currentTimeLine"></div>`;
     
     const gridContainer = document.getElementById('gridContainer');
@@ -877,28 +921,26 @@ function renderTimetable() {
     adjustFontSize(); 
 }
 
+// 現在時刻の赤い横線を正しい位置に動かす関数です
 function updateCurrentTimeLine() {
     const line = document.getElementById('currentTimeLine');
     if(!line) return;
 
-    const now = new Date();
     const dayKey = `day${currentDay}`;
-    const dataDate = new Date(timetableData[dayKey].date);
-    const isNextDayEarly = now.getHours() < APP_CONFIG.startHour && now.getDate() === dataDate.getDate() + 1;
-    
-    if (now.toDateString() === dataDate.toDateString() || isNextDayEarly) {
-        const currentMins = (now.getHours() + (isNextDayEarly ? 24 : 0) - APP_CONFIG.startHour) * 60 + now.getMinutes();
-        const maxMins = (APP_CONFIG.endHour - APP_CONFIG.startHour) * 60;
+    const currentMins = getCurrentMinsForDay(dayKey);
 
-        if(currentMins >= 0 && currentMins <= maxMins) {
-            line.style.display = 'block';
-            line.style.top = `${currentMins * 2}px`; 
-            return;
-        }
+    const maxMins = (APP_CONFIG.endHour - APP_CONFIG.startHour) * 60;
+
+    // 分数が0～最大分数の間に収まっている時だけ線を表示します
+    if(currentMins >= 0 && currentMins <= maxMins) {
+        line.classList.add('is-visible');
+        line.style.setProperty('--current-min', currentMins); 
+        return;
     }
-    line.style.display = 'none'; 
+    line.classList.remove('is-visible'); 
 }
 
+// 1つのフード店舗のカード（HTML）を作る関数です
 function generateFoodCard(shop, areaName, isDraggable = false) {
     const menuItems = shop.menus.map(m => `<li>${m}</li>`).join('');
     const messageHtml = shop.message.replace(/\n/g, '<br>');
@@ -907,16 +949,15 @@ function generateFoodCard(shop, areaName, isDraggable = false) {
         
     const id = areaName + "::" + shop.name;
     const isFav = foodFavoritesOrder.some(item => item.id === id);
-    const encShopName = encodeURIComponent(shop.name).replace(/'/g, "%27");
-    const encAreaName = encodeURIComponent(areaName).replace(/'/g, "%27");
+    const safeId = id.replace(/"/g, '&quot;');
     
     const classes = isDraggable ? "food-card draggable-card" : "food-card";
-    const dragAttr = isDraggable ? `draggable="true" data-id="${id}"` : `data-id="${id}"`;
+    const dragAttr = isDraggable ? `draggable="true" data-id="${safeId}"` : `data-id="${safeId}"`;
 
     return `
     <div class="${classes}" ${dragAttr}>
         <div class="food-card-area-badge">${areaName}</div>
-        <button class="food-fav-btn ${isFav ? 'active' : ''}" data-shop="${encShopName}" data-area="${encAreaName}">★</button>
+        <button class="food-fav-btn ${isFav ? 'active' : ''}" data-fav-id="${safeId}">★</button>
         <div class="food-card-img-wrapper">${imgHtml}</div>
         <div class="food-card-body">
             <h3 class="food-card-title">${shop.name}</h3>
@@ -926,6 +967,7 @@ function generateFoodCard(shop, areaName, isDraggable = false) {
     </div>`;
 }
 
+// フード一覧画面全体を描画する関数です
 function renderFoodSection() {
     let html = '';
     const ui = APP_CONFIG.ui;
@@ -970,6 +1012,7 @@ function renderFoodSection() {
     setupDragAndDrop(); 
 }
 
+// フードのお気に入りをドラッグして並べ替えるための準備です
 function setupDragAndDrop() {
     const container = document.getElementById('foodFavoritesList');
     if (!container) return;
@@ -997,6 +1040,7 @@ function setupDragAndDrop() {
     });
 }
 
+// ドラッグ中、どのカードの下に挿入すべきかを計算する関数です
 function getDragAfterElement(container, x, y) {
     const draggableElements = [...container.querySelectorAll('.draggable-card:not(.dragging)')];
     return draggableElements.reduce((closest, child) => {
@@ -1010,6 +1054,7 @@ function getDragAfterElement(container, x, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
+// ドラッグで並び替えた後の新しい順番を保存する関数です
 function updateFoodFavoritesOrder() {
     const container = document.getElementById('foodFavoritesList');
     const cards = container.querySelectorAll('.draggable-card');
@@ -1023,15 +1068,18 @@ function updateFoodFavoritesOrder() {
     saveFoodFavorites();
 }
 
+// マップの拡大縮小を行う関数です
 function zoomMap(delta) {
     mapScale = Math.min(Math.max(0.5, mapScale + delta), 3.0);
-    document.getElementById('mapWrapper').style.width = `${mapScale * 100}%`;
+    // JSは現在の倍率をCSSに渡すだけにします
+    document.getElementById('mapWrapper').style.setProperty('--map-scale', mapScale);
 }
 function resetZoom() {
     mapScale = 1.0;
-    document.getElementById('mapWrapper').style.width = `100%`;
+    document.getElementById('mapWrapper').style.setProperty('--map-scale', mapScale);
 }
 
+// 画面右上のデジタル時計を更新する関数です
 function updateClock() {
     const now = new Date();
     const h = String(now.getHours()).padStart(2, '0');
@@ -1041,6 +1089,7 @@ function updateClock() {
     if (clockElement) clockElement.textContent = `${h}:${m}:${s}`;
 }
 
+// このファイルの最終更新日時を表示する関数です
 function displayLastModified() {
     const lastMod = new Date(document.lastModified);
     const y = lastMod.getFullYear();
@@ -1056,6 +1105,7 @@ function displayLastModified() {
 
 // ---------------- 以下、検索機能系の処理 ----------------
 
+// 検索を高速に行うため、事前にデータを整理してリストアップする関数です
 function buildArtistSearchData() {
     const baseNameMap = new Map(); 
     fullArtistData = [];
@@ -1109,6 +1159,7 @@ function buildArtistSearchData() {
     });
 }
 
+// 検索ボックスに文字が入力された時の動きを設定する関数です
 function setupSearch() {
     buildArtistSearchData();
     const searchInput = document.getElementById('artistSearchInput');
@@ -1159,6 +1210,7 @@ function setupSearch() {
     modalOverlay.addEventListener('click', closeSearchModal);
 }
 
+// 検索結果のポップアップを閉じる関数です
 function closeSearchModal() {
     document.getElementById('searchModal').style.display = 'none';
     document.getElementById('searchModalOverlay').style.display = 'none';
@@ -1169,6 +1221,7 @@ function closeSearchModal() {
     suggestList.innerHTML = '';
 }
 
+// 分を「〇時間〇分」という文字に変換する関数です
 function formatDiffTime(mins) {
     if (mins >= 60) {
         const h = Math.floor(mins / 60);
@@ -1179,6 +1232,7 @@ function formatDiffTime(mins) {
     }
 }
 
+// 「演奏開始まであと何分」を計算してHTMLを作る関数です
 function getArtistTimeStatusHtml(artist, dayDateStr) {
     if (!artist.start) return "";
     const now = new Date();
@@ -1229,6 +1283,7 @@ function getArtistTimeStatusHtml(artist, dayDateStr) {
     }
 }
 
+// 検索結果のポップアップ画面を作る関数です
 function showSearchResults(searchText) {
     const query = normalizeForSearch(searchText.trim());
     if (!query) return;
@@ -1255,10 +1310,8 @@ function showSearchResults(searchText) {
         return;
     }
 
-    // 検索結果に紐づくアーティストの総件数を取得
     const totalArtists = results.reduce((sum, item) => sum + item.artistsGroup.length, 0);
     
-    // アーティスト件数が1件の場合と複数件の場合で出し分ける
     if (totalArtists === 1) {
         const targetGroup = results[0].artistsGroup[0];
         const artist = targetGroup.originalArtist;
@@ -1266,7 +1319,6 @@ function showSearchResults(searchText) {
         const statusHtml = getArtistTimeStatusHtml(artist, dayDate);
         contentArea.innerHTML = statusHtml; 
     } else if (totalArtists > 1) {
-        // 複数の時間帯で演奏する場合のメッセージ
         const statusHtml = `<div class="search-time-status">複数時間帯が存在するためカウントダウン対象外</div>`;
         contentArea.innerHTML = statusHtml;
     }
@@ -1279,12 +1331,14 @@ function showSearchResults(searchText) {
             
             const favId = getFavId(dayKey, stage.id, artist.name);
             const isFav = favorites[favId];
-            const boxBgColor = artist.isLightBg ? `${stage.color}b3` : stage.color;
             const dayLabel = APP_CONFIG.days.find(d => d.id === dayKey)?.label || dayKey;
             const timeText = artist.end ? `${formatTimeDisplay(artist.start)}-${formatTimeDisplay(artist.end)}` : `${formatTimeDisplay(artist.start)}-`;
 
+            // JSは「背景を薄くする意味（is-light-bg）」をクラスとして渡すだけに留め、見た目はCSSに任せます。
+            const classes = ['artist-block', isFav ? 'favorited' : '', artist.isLightBg ? 'is-light-bg' : ''].filter(Boolean).join(' ');
+
             const html = `
-                <div class="artist-block ${isFav ? 'favorited' : ''}" style="background-color:${boxBgColor};">
+                <div class="${classes}" style="--artist-bg: ${stage.color};">
                     <div class="artist-top">
                         <span class="artist-time">${dayLabel} ${timeText} <span class="artist-stage-name">${stage.name}</span></span>
                         <button class="fav-btn ${isFav ? 'active' : ''}" data-fav-id="${favId}">★</button>
@@ -1302,11 +1356,12 @@ function showSearchResults(searchText) {
 
 // --- ページが読み込まれたときに最初に動く処理 ---
 window.addEventListener('DOMContentLoaded', () => {
-    applyAppConfig();
-    setupEventListeners(); 
+    applyAppConfig(); // まず初めにHTMLの空箱に文字やボタンを流し込みます
+    setupEventListeners(); // ボタンが作られた後で、クリックした時の動きを設定します
     setupSearch();
 
-    const lastTab = localStorage.getItem(LAST_TAB_KEY) || 'day1';
+    // 前回閉じた時のタブを記憶していればそこを開き、なければDay1を開きます
+    const lastTab = localStorage.getItem(LAST_TAB_KEY) || (APP_CONFIG.days[0] ? APP_CONFIG.days[0].id : 'food');
     switchTab(lastTab); 
 
     renderFoodSection();
@@ -1332,9 +1387,13 @@ window.addEventListener('DOMContentLoaded', () => {
             if (weatherSection && weatherSection.classList.contains('active')) {
                 setTimeout(() => {
                     weatherSection.scrollTop = 0;
-                    window.scrollTo(0, 0);
                 }, 100);
             }
         });
+    }
+    
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .catch(err => console.error('SW登録失敗:', err));
     }
 });
